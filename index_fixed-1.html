@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRShield — QR Threat Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+:root {
+  --bg:         #0B0E17;
+  --surface:    #111622;
+  --surface2:   #161C2D;
+  --surface3:   #1D2540;
+  --border:     rgba(255,255,255,0.07);
+  --border2:    rgba(255,255,255,0.12);
+  --blue:       #4F83FF;
+  --blue-dim:   #3A68D8;
+  --blue-faint: rgba(79,131,255,0.08);
+  --blue-glow:  0 0 24px rgba(79,131,255,0.25);
+  --success:    #22C55E;
+  --success-bg: rgba(34,197,94,0.08);
+  --warning:    #F59E0B;
+  --warning-bg: rgba(245,158,11,0.08);
+  --danger:     #F87171;
+  --danger-bg:  rgba(248,113,113,0.08);
+  --critical:   #EF4444;
+  --critical-bg:rgba(239,68,68,0.08);
+  --text:       #E8EBF4;
+  --text-2:     #8B95B0;
+  --text-3:     #4A5270;
+  --radius:     12px;
+  --radius-sm:  8px;
+  --shadow:     0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.5);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(79,131,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,131,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Top gradient accent */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  z-index: 10;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
+
+/* ── HEADER ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-icon {
+  width: 42px; height: 42px;
+  background: var(--blue-faint);
+  border: 1px solid rgba(79,131,255,0.3);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--blue-glow);
+}
+
+.brand-icon svg { width: 22px; height: 22px; }
+
+.brand-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.brand-name span { color: var(--blue); }
+
+.brand-tag {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-3);
+  letter-spacing: 0.3px;
+  margin-top: 1px;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--success);
+  letter-spacing: 0.5px;
+}
+
+.badge-live::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.clock {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 5px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+.tab-btn.active {
+  background: var(--surface3);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.tab-btn .tab-icon { font-size: 15px; }
+
+/* ── PANELS ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title svg { opacity: 0.6; }
+
+/* ── CAMERA ── */
+.camera-container {
+  position: relative;
+  background: #000;
+  aspect-ratio: 4/3;
+  max-height: 400px;
+  overflow: hidden;
+}
+
+#videoEl {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.95;
+}
+
+#scanCanvas { display: none; }
+
+/* Viewfinder */
+.viewfinder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vf-corner {
+  position: absolute;
+  width: 28px; height: 28px;
+}
+
+.vf-corner svg { width: 100%; height: 100%; }
+
+.vf-tl { top: 24px; left: 24px; }
+.vf-tr { top: 24px; right: 24px; transform: scaleX(-1); }
+.vf-bl { bottom: 24px; left: 24px; transform: scaleY(-1); }
+.vf-br { bottom: 24px; right: 24px; transform: scale(-1); }
+
+.scan-line {
+  position: absolute;
+  left: 24px; right: 24px;
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(79,131,255,0.4) 20%,
+    rgba(79,131,255,0.9) 50%,
+    rgba(79,131,255,0.4) 80%,
+    transparent 100%
+  );
+  animation: scan-travel 2.5s ease-in-out infinite;
+  top: 24px;
+  border-radius: 1px;
+}
+
+@keyframes scan-travel {
+  0%   { top: 24px;             opacity: 0.8; }
+  50%  { opacity: 1; }
+  100% { top: calc(100% - 24px); opacity: 0.3; }
+}
+
+.cam-label {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  padding: 20px 16px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.detected-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(79,131,255,0.2);
+  animation: det-flash 0.4s ease-out forwards;
+}
+
+@keyframes det-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.cam-footer {
+  padding: 14px 16px;
+  display: flex;
+  gap: 10px;
+}
+
+/* ── UPLOAD ── */
+.drop-area {
+  margin: 4px;
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 52px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  background: var(--surface2);
+}
+
+.drop-area:hover, .drop-area.drag-active {
+  border-color: var(--blue-dim);
+  background: var(--blue-faint);
+}
+
+.drop-area input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.drop-icon {
+  width: 48px; height: 48px;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 22px;
+}
+
+.drop-area h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.drop-area p {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.drop-area strong { color: var(--blue); font-weight: 600; cursor: pointer; }
+
+.upload-preview {
+  display: none;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  display: none;
+  align-items: center;
+  gap: 14px;
+}
+
+.preview-thumb {
+  width: 64px; height: 64px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border2);
+  flex-shrink: 0;
+}
+
+.preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.preview-info { flex: 1; }
+.preview-info p { font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+.preview-info span { font-size: 12px; color: var(--text-3); }
+
+.upload-actions {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+.btn-primary:hover {
+  background: var(--blue-dim);
+  box-shadow: 0 4px 12px rgba(79,131,255,0.35);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text-2);
+  border-color: var(--border2);
+}
+
+.btn-secondary:hover {
+  background: var(--surface3);
+  color: var(--text);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-3);
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--surface2);
+  color: var(--text-2);
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── LOADING OVERLAY ── */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(11,14,23,0.88);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.overlay.show { display: flex; }
+
+.spinner {
+  width: 44px; height: 44px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.overlay-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  letter-spacing: 0.3px;
+}
+
+/* ── RESULT ── */
+#resultPanel {
+  display: none;
+  margin-top: 20px;
+  animation: rise 0.35s ease;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* QR Content card */
+.result-content-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.result-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.result-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.scan-id {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-3);
+  background: var(--surface2);
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.qr-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  word-break: break-all;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: var(--blue-faint);
+  border: 1px solid rgba(79,131,255,0.2);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue);
+  letter-spacing: 0.3px;
+}
+
+/* Findings */
+.findings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.findings-head {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.findings-count {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.finding-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+  animation: row-in 0.25s ease both;
+}
+
+.finding-row:last-child { border-bottom: none; }
+.finding-row:hover { background: rgba(255,255,255,0.015); }
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.finding-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.finding-dot.danger   { background: var(--danger); box-shadow: 0 0 6px rgba(248,113,113,0.5); }
+.finding-dot.warning  { background: var(--warning); box-shadow: 0 0 6px rgba(245,158,11,0.4); }
+.finding-dot.safe     { background: var(--success); box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+
+.finding-content { flex: 1; }
+
+.finding-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.finding-tag.danger  { background: var(--danger-bg);  color: var(--danger);  border: 1px solid rgba(248,113,113,0.2); }
+.finding-tag.warning { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245,158,11,0.2);  }
+.finding-tag.safe    { background: var(--success-bg); color: var(--success); border: 1px solid rgba(34,197,94,0.2);   }
+
+.finding-msg {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* Score card */
+.score-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.score-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.score-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.score-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.score-num {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.score-num.low      { color: var(--success); }
+.score-num.medium   { color: var(--warning); }
+.score-num.high     { color: #FB923C; }
+.score-num.critical { color: var(--critical); }
+
+.score-denom {
+  font-size: 14px;
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.score-bar-track {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  width: 0%;
+  transition: width 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.score-bar-fill.low      { background: linear-gradient(90deg, #16A34A, #22C55E); }
+.score-bar-fill.medium   { background: linear-gradient(90deg, #D97706, #F59E0B); }
+.score-bar-fill.high     { background: linear-gradient(90deg, #EA580C, #FB923C); }
+.score-bar-fill.critical { background: linear-gradient(90deg, #DC2626, #EF4444); }
+
+.score-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+/* Verdict */
+.verdict-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.verdict-body {
+  padding: 28px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.verdict-icon-wrap {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.verdict-text-wrap {}
+
+.verdict-level {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.verdict-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.verdict-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.verdict-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+}
+
+/* verdict theming */
+.verdict-safe     { background: var(--surface); }
+.verdict-medium   { background: var(--surface); }
+.verdict-high     { background: var(--surface); }
+.verdict-critical { background: var(--surface); }
+
+.vicon-safe     { background: rgba(34,197,94,0.1);  border: 1px solid rgba(34,197,94,0.2); }
+.vicon-medium   { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); }
+.vicon-high     { background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.2); }
+.vicon-critical { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.25); }
+
+.vlevel-safe     { color: var(--success); }
+.vlevel-medium   { color: var(--warning); }
+.vlevel-high     { color: #FB923C; }
+.vlevel-critical { color: var(--critical); }
+
+/* ── HISTORY ── */
+.section-divider {
+  margin: 32px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-divider span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.history-row:last-child { border-bottom: none; }
+
+.history-row:hover { background: var(--surface2); }
+
+.risk-badge {
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.rb-low      { background: var(--success-bg);  color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+.rb-medium   { background: var(--warning-bg);  color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
+.rb-high     { background: rgba(251,146,60,0.08); color: #FB923C; border: 1px solid rgba(251,146,60,0.2); }
+.rb-critical { background: var(--critical-bg); color: var(--critical); border: 1px solid rgba(239,68,68,0.2); }
+
+.history-url {
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-score {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.history-time {
+  font-size: 11px;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.empty-history {
+  padding: 32px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+/* ── FOOTER ── */
+.footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-3);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footer a { color: var(--blue); text-decoration: none; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+@media (max-width: 540px) {
+  .page { padding: 24px 16px 60px; }
+  .header { flex-wrap: wrap; gap: 12px; }
+  .verdict-body { flex-direction: column; text-align: center; }
+  .verdict-footer { flex-direction: column; }
+  .cam-footer, .upload-actions { flex-direction: column; }
+  .footer { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-text" id="overlayText">Analyzing…</div>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 1L2 5.5V13C2 18.8 6.4 24.2 12 26C17.6 24.2 22 18.8 22 13V5.5L12 1Z"
+            stroke="#4F83FF" stroke-width="1.5" fill="rgba(79,131,255,0.1)" stroke-linejoin="round"/>
+          <path d="M8 13.5l2.5 2.5 5-5" stroke="#4F83FF" stroke-width="1.75"
+            stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">QR<span>Shield</span></div>
+        <div class="brand-tag">QR Threat Intelligence Platform</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="badge-live">Active</div>
+      <div class="clock" id="clockEl">--:--:--</div>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-camera" onclick="switchTab('camera')">
+      <span class="tab-icon">📷</span> Live Camera Scan
+    </button>
+    <button class="tab-btn" id="tab-upload" onclick="switchTab('upload')">
+      <span class="tab-icon">📁</span> Upload Image
+    </button>
+  </div>
+
+  <!-- Camera Panel -->
+  <div class="panel active" id="panel-camera">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.2 4.2l2.8 2.8M16.9 16.9l2.9 2.9M1 12h4M19 12h4M4.2 19.8l2.8-2.8M16.9 7.1l2.9-2.9"/>
+          </svg>
+          Camera Feed
+        </div>
+        <span style="font-size:12px;color:var(--text-3)" id="camStatusLabel">Inactive</span>
+      </div>
+      <div class="camera-container" id="cameraContainer">
+        <!-- placeholder -->
+        <div style="width:100%;height:100%;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;aspect-ratio:4/3;max-height:400px;min-height:260px;" id="camPlaceholder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span style="font-size:13px;color:var(--text-3);font-weight:500;">Camera not started</span>
+        </div>
+        <video id="videoEl" autoplay playsinline muted style="display:none;width:100%;height:100%;object-fit:cover;"></video>
+        <canvas id="scanCanvas" style="display:none;"></canvas>
+        <div class="viewfinder" id="viewfinder" style="display:none;">
+          <div class="vf-corner vf-tl">
+            <svg viewBox="0 0 28 28" fill="none"><path d="M2 26V4a2 2 0 012-2h22" stroke="#4F83FF" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="vf-corner vf-tr">
+            <svg viewBox="0 0 28 28" fill="none"><path d="M2 26V4a2 2 0 012-2h22" stroke="#4F83FF" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="vf-corner vf-bl">
+            <svg viewBox="0 0 28 28" fill="none"><path d="M2 26V4a2 2 0 012-2h22" stroke="#4F83FF" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="vf-corner vf-br">
+            <svg viewBox="0 0 28 28" fill="none"><path d="M2 26V4a2 2 0 012-2h22" stroke="#4F83FF" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="scan-line"></div>
+          <div class="cam-label" id="camLabel">Align QR code within the frame</div>
+        </div>
+      </div>
+      <div class="cam-footer">
+        <button class="btn btn-primary" id="startBtn" onclick="startCamera()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Start Camera
+        </button>
+        <button class="btn btn-secondary" id="stopBtn" onclick="stopCamera()" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+          Stop
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Panel -->
+  <div class="panel" id="panel-upload">
+    <div class="card">
+      <div class="drop-area" id="dropArea">
+        <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
+        <div class="drop-icon">🔲</div>
+        <h3>Drop your QR code image here</h3>
+        <p>PNG, JPG, WEBP supported — or <strong>click to browse</strong></p>
+      </div>
+      <div class="upload-preview" id="uploadPreview">
+        <div class="preview-thumb">
+          <img id="previewImg" src="" alt="">
+        </div>
+        <div class="preview-info">
+          <p id="previewName">image.png</p>
+          <span id="previewSize">—</span>
+        </div>
+        <button class="btn btn-ghost" onclick="clearUpload()" style="flex-shrink:0;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Clear
+        </button>
+      </div>
+      <div class="upload-actions">
+        <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeUpload()" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Analyze QR Code
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Panel -->
+  <div id="resultPanel">
+
+    <div class="result-content-card">
+      <div class="result-meta">
+        <div class="result-label">Decoded Content</div>
+        <div class="scan-id" id="scanIdEl">—</div>
+      </div>
+      <div class="qr-value" id="qrValueEl">—</div>
+      <div id="typePillEl"></div>
+    </div>
+
+    <div class="findings-card">
+      <div class="findings-head">
+        <span>Security Findings</span>
+        <span class="findings-count" id="findingsCount">0 checks</span>
+      </div>
+      <div id="findingsList"></div>
+    </div>
+
+    <div class="score-card">
+      <div class="score-head">
+        <div class="score-label">Risk Score</div>
+        <div class="score-value">
+          <span class="score-num" id="scoreNumEl">0</span>
+          <span class="score-denom">/100</span>
+        </div>
+      </div>
+      <div class="score-bar-track">
+        <div class="score-bar-fill" id="scoreFillEl" style="width:0%"></div>
+      </div>
+      <div class="score-ticks">
+        <span>Safe (0–20)</span>
+        <span>Suspicious (21–50)</span>
+        <span>High Risk (51–75)</span>
+        <span>Critical (76+)</span>
+      </div>
+    </div>
+
+    <div class="verdict-card" id="verdictCard">
+      <div class="verdict-body" id="verdictBody">
+        <div class="verdict-icon-wrap" id="verdictIconWrap">—</div>
+        <div class="verdict-text-wrap">
+          <div class="verdict-level" id="verdictLevel">—</div>
+          <div class="verdict-title" id="verdictTitle">—</div>
+          <div class="verdict-desc" id="verdictDesc">—</div>
+        </div>
+      </div>
+      <div class="verdict-footer">
+        <button class="btn btn-secondary" onclick="resetScan()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 .5-5"/></svg>
+          Scan Another
+        </button>
+        <button class="btn btn-secondary" id="copyBtn" onclick="copyReport()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="section-divider">
+    <span>Recent Scans</span>
+    <div class="divider-line"></div>
+    <button class="btn btn-ghost" onclick="clearHistory()" style="padding:4px 10px;font-size:11px;">Clear</button>
+  </div>
+
+  <div class="history-card" id="historyCard">
+    <div class="empty-history" id="historyEmpty">No scans yet — results will appear here.</div>
+    <div id="historyList"></div>
+  </div>
+
+  <footer class="footer">
+    <span>QRShield &nbsp;·&nbsp; Local analysis — no data leaves your device</span>
+    <span>19 threat detectors &nbsp;·&nbsp; Powered by jsQR</span>
+  </footer>
+
+</div>
+
+<script>
+// ── STATE ──
+let stream = null, scanning = false, scanInterval = null;
+let uploadedImage = null, uploadedFile = null;
+let lastResult = null;
+let history = JSON.parse(localStorage.getItem('qrs_history') || '[]');
+let detectedOnce = false;
+let scanBusy = false;
+
+// Native QR detector on supported browsers gives much better phone-camera scans.
+let nativeQRDetector = null;
+if ('BarcodeDetector' in window) {
+  try { nativeQRDetector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (_) {}
+}
+
+function hasSecureCameraContext() {
+  return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+}
+
+function getCanvasContext(canvas) {
+  return canvas.getContext('2d', { willReadFrequently: true });
+}
+
+async function decodeQRFromCanvas(canvas, ctx) {
+  // 1) Browser native detector first — strongest on Android Chrome/Edge.
+  if (nativeQRDetector) {
+    try {
+      const codes = await nativeQRDetector.detect(canvas);
+      const qr = codes.find(c => (c.format || '').toLowerCase().includes('qr'));
+      if (qr && qr.rawValue) return qr.rawValue;
+    } catch (_) {}
+  }
+
+  // 2) jsQR fallback.
+  if (typeof jsQR !== 'undefined') {
+    try {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'attemptBoth' });
+      if (code && code.data) return code.data;
+    } catch (_) {}
+  }
+
+  return null;
+}
+
+async function decodeQRFromImage(img) {
+  const attempts = [1, 1.5, 2];
+
+  for (const scale of attempts) {
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = getCanvasContext(c);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    const value = await decodeQRFromCanvas(c, ctx);
+    if (value) return value;
+  }
+
+  return null;
+}
+
+// ── CLOCK ──
+setInterval(() => {
+  document.getElementById('clockEl').textContent =
+    new Date().toLocaleTimeString('en-US', { hour12: false });
+}, 1000);
+document.getElementById('clockEl').textContent =
+  new Date().toLocaleTimeString('en-US', { hour12: false });
+
+// ── TABS ──
+function switchTab(t) {
+  ['camera','upload'].forEach(id => {
+    document.getElementById('panel-'+id).classList.toggle('active', id === t);
+    document.getElementById('tab-'+id).classList.toggle('active', id === t);
+  });
+  if (t !== 'camera' && stream) stopCamera();
+}
+
+// ── CAMERA ──
+async function startCamera() {
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn  = document.getElementById('stopBtn');
+  const label    = document.getElementById('camStatusLabel');
+
+  // Camera works only on HTTPS / localhost in modern browsers.
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !hasSecureCameraContext()) {
+    label.textContent = 'Camera needs HTTPS or localhost. Deploy it first, then open the live URL.';
+    startBtn.disabled = false;
+    return;
+  }
+
+  // At least one decoder must be available.
+  if (!nativeQRDetector && typeof jsQR === 'undefined') {
+    label.textContent = 'Error: QR scanner library failed to load. Check your internet connection.';
+    startBtn.disabled = false;
+    return;
+  }
+
+  startBtn.disabled = true;
+  label.textContent = 'Requesting permission…';
+
+  try {
+    // Try rear camera first, fall back to any camera
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+    } catch {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    }
+
+    const video = document.getElementById('videoEl');
+    video.srcObject = stream;
+
+    // Wait for metadata — handle case where it already fired
+    if (video.readyState < 1) {
+      await new Promise((resolve, reject) => {
+        video.onloadedmetadata = resolve;
+        video.onerror = reject;
+        setTimeout(reject, 8000); // 8s timeout
+      });
+    }
+
+    // Play and wait for first frame
+    await video.play();
+    await new Promise(resolve => {
+      if (video.readyState >= 2) { resolve(); return; }
+      video.oncanplay = resolve;
+      setTimeout(resolve, 2000); // fallback
+    });
+
+    document.getElementById('camPlaceholder').style.display = 'none';
+    video.style.display = 'block';
+    document.getElementById('viewfinder').style.display = 'block';
+    label.textContent = 'Scanning…';
+    document.getElementById('camLabel').textContent = 'Align QR code within the frame';
+    stopBtn.disabled = false;
+    scanning = true;
+    detectedOnce = false;
+
+    // Use requestAnimationFrame for smoother, more reliable scanning
+    scanLoop();
+
+  } catch(err) {
+    const msgs = {
+      NotAllowedError: 'Camera permission denied. Please allow access in your browser settings.',
+      NotFoundError: 'No camera detected on this device.',
+      NotReadableError: 'Camera is in use by another application.',
+      OverconstrainedError: 'Camera does not meet requirements.',
+    };
+    label.textContent = msgs[err.name] || ('Error: ' + err.message);
+    startBtn.disabled = false;
+  }
+}
+
+// requestAnimationFrame-based scan loop — far more reliable than setInterval
+function scanLoop() {
+  if (!scanning) return;
+  doScanFrame();
+  // ~200ms between frames is plenty for QR detection and saves CPU
+  setTimeout(() => requestAnimationFrame(scanLoop), 200);
+}
+
+async function doScanFrame() {
+  if (!scanning || detectedOnce || scanBusy) return;
+  scanBusy = true;
+
+  try {
+    const video  = document.getElementById('videoEl');
+    const canvas = document.getElementById('scanCanvas');
+    if (!video || !canvas || !stream) return;
+
+    if (video.readyState < 2) return;
+
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) return;
+
+    canvas.width  = w;
+    canvas.height = h;
+
+    const ctx = getCanvasContext(canvas);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(video, 0, 0, w, h);
+
+    const decoded = await decodeQRFromCanvas(canvas, ctx);
+
+    if (decoded) {
+      detectedOnce = true;
+
+      const flash = document.createElement('div');
+      flash.className = 'detected-flash';
+      document.getElementById('cameraContainer').appendChild(flash);
+      setTimeout(() => flash.remove(), 400);
+
+      const lbl = document.getElementById('camLabel');
+      if (lbl) lbl.textContent = 'QR code detected — analyzing…';
+      document.getElementById('camStatusLabel').textContent = 'Detected';
+
+      stopCamera();
+      showOverlay('Analyzing threat vectors…');
+      setTimeout(() => { hideOverlay(); analyzeAndShow(decoded); }, 700);
+    }
+  } finally {
+    scanBusy = false;
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  scanBusy = false;
+  clearInterval(scanInterval);
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  document.getElementById('videoEl').srcObject = null;
+  document.getElementById('startBtn').disabled  = false;
+  document.getElementById('stopBtn').disabled   = true;
+  document.getElementById('camStatusLabel').textContent = 'Stopped';
+}
+
+// ── UPLOAD ──
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  loadFile(file);
+}
+
+function loadFile(file) {
+  uploadedFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('previewName').textContent = file.name;
+    document.getElementById('previewSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    document.getElementById('uploadPreview').style.display = 'flex';
+
+    const img = new Image();
+    img.onload = () => {
+      uploadedImage = img;
+      document.getElementById('analyzeBtn').disabled = false;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearUpload() {
+  uploadedImage = null; uploadedFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadPreview').style.display = 'none';
+  document.getElementById('analyzeBtn').disabled = true;
+}
+
+async function analyzeUpload() {
+  if (!uploadedImage) return;
+
+  if (!nativeQRDetector && typeof jsQR === 'undefined') {
+    showResult_error('QR scanner library failed to load. Check your internet connection and refresh.');
+    return;
+  }
+
+  showOverlay('Decoding & analyzing…');
+  const decoded = await decodeQRFromImage(uploadedImage);
+  hideOverlay();
+
+  if (!decoded) {
+    showResult_error('No QR code found. Try a sharper image, crop closer to the QR, or increase brightness.');
+    return;
+  }
+
+  analyzeAndShow(decoded);
+}
+
+// Drag & drop
+const da = document.getElementById('dropArea');
+da.addEventListener('dragover', e => { e.preventDefault(); da.classList.add('drag-active'); });
+da.addEventListener('dragleave', () => da.classList.remove('drag-active'));
+da.addEventListener('drop', e => {
+  e.preventDefault(); da.classList.remove('drag-active');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+
+// ── ANALYSIS ENGINE ──
+function analyzeQR(content) {
+  const findings = [];
+  let score = 0;
+
+  const isURL = /^https?:\/\//i.test(content) || /^www\./i.test(content) ||
+    /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/|$)/.test(content);
+
+  let type = 'TEXT';
+  if      (/^https?:\/\//i.test(content)) type = 'URL';
+  else if (/^mailto:/i.test(content))     type = 'EMAIL';
+  else if (/^tel:/i.test(content))        type = 'PHONE';
+  else if (/^wifi:/i.test(content))       type = 'WIFI';
+  else if (/^bitcoin:/i.test(content))    type = 'CRYPTO';
+  else if (/^smsto?:/i.test(content))     type = 'SMS';
+  else if (/^geo:/i.test(content))        type = 'LOCATION';
+  else if (/^BEGIN:V/i.test(content))     type = 'CONTACT';
+
+  if (type === 'TEXT' && !isURL) {
+    findings.push({ level: 'safe',    label: 'Plain Text',    msg: 'Content is plain text — no URL to analyze.' });
+    findings.push({ level: 'safe',    label: 'No URL',        msg: 'Non-URL QR codes carry no link-based threat.' });
+    return { findings, score: 0, type };
+  }
+
+  let url = content;
+  if (type === 'TEXT' && isURL) { url = content.startsWith('www.') ? 'http://' + content : content; type = 'URL'; }
+
+  let hostname = '', parts = [];
+  try {
+    const p = new URL(url.startsWith('http') ? url : 'http://' + url);
+    hostname = p.hostname;
+  } catch { hostname = url.replace(/^https?:\/\//i, '').split('/')[0]; }
+  parts = hostname.replace(/^www\./, '').split('.');
+
+  // 1. HTTPS
+  if (/^http:\/\//i.test(url) && !/localhost/i.test(url)) {
+    score += 20;
+    findings.push({ level: 'danger', label: 'No Encryption', msg: 'HTTP detected — connection is unencrypted. Data can be intercepted in transit.' });
+  } else {
+    findings.push({ level: 'safe', label: 'HTTPS', msg: 'Encrypted HTTPS connection confirmed.' });
+  }
+
+  // 2. IP address
+  if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
+    score += 30;
+    findings.push({ level: 'danger', label: 'IP Address URL', msg: `Direct IP address (${hostname}) used instead of a domain name — a common phishing indicator.` });
+  }
+
+  // 3. URL shortener
+  const shorteners = ['bit.ly','tinyurl.com','t.co','goo.gl','ow.ly','buff.ly','short.io','is.gd','rebrand.ly','cutt.ly','tiny.cc','adf.ly','bc.vc','snip.ly','youtu.be','amzn.to','fb.me','wa.me','v.gd'];
+  if (shorteners.some(s => hostname === s || hostname.endsWith('.'+s))) {
+    score += 20;
+    findings.push({ level: 'warning', label: 'URL Shortener', msg: `URL shortener (${hostname}) conceals the true destination. Final URL is unknown without following the link.` });
+  }
+
+  // 4. Keywords
+  const kwds = ['login','verify','verification','free','gift','urgent','reward','prize','winner','claim','password','signin','confirm','update','suspend','alert','banking','account','recovery','unlock','limited','paypal','amazon','apple','google','microsoft'];
+  const hits = kwds.filter(w => url.toLowerCase().includes(w));
+  if (hits.length) {
+    score += Math.min(hits.length * 8, 30);
+    findings.push({ level: 'warning', label: 'Suspicious Keywords', msg: `${hits.length} high-risk keyword${hits.length > 1 ? 's' : ''} found in URL: ${hits.slice(0,4).map(w => `"${w}"`).join(', ')}${hits.length > 4 ? ' and more' : ''}.` });
+  }
+
+  // 5. Subdomains
+  if (parts.length > 3) {
+    score += 20;
+    findings.push({ level: 'danger', label: 'Excessive Subdomains', msg: `${parts.length} subdomain levels detected (${hostname}). Legitimate services rarely use deeply nested subdomains.` });
+  } else if (parts.length === 3) {
+    score += 6;
+    findings.push({ level: 'warning', label: 'Subdomain Detected', msg: 'URL uses a subdomain — verify this matches the expected legitimate domain.' });
+  }
+
+  // 6. Domain pattern
+  const domainOnly = parts[parts.length - 2] || '';
+  if (domainOnly.length > 20 || /^[a-z0-9]{14,}$/.test(domainOnly)) {
+    score += 14;
+    findings.push({ level: 'warning', label: 'Suspicious Domain', msg: 'Domain name appears auto-generated or unusually long — characteristic of phishing infrastructure.' });
+  }
+
+  // 7. Port
+  const portM = url.match(/:(\d+)\//);
+  if (portM && ![80,443,8080,8443].includes(+portM[1])) {
+    score += 15;
+    findings.push({ level: 'danger', label: 'Non-Standard Port', msg: `Unusual port ${portM[1]} detected. Legitimate web services use standard ports (80/443).` });
+  }
+
+  // 8. Data URI
+  if (/^data:/i.test(content)) {
+    score += 45;
+    findings.push({ level: 'danger', label: 'Data URI Payload', msg: 'Embedded Data URI detected. Can carry executable code or HTML exploits directly in the QR payload.' });
+  }
+
+  // 9. Punycode
+  if (hostname.includes('xn--')) {
+    score += 25;
+    findings.push({ level: 'danger', label: 'IDN Homograph', msg: 'Punycode encoding detected — possible homograph attack using lookalike Unicode characters to impersonate a trusted domain.' });
+  }
+
+  // 10. Suspicious TLD
+  const suspTlds = ['xyz','top','click','loan','work','gq','cf','ml','tk','ga','pw','icu','vip','cyou','bond','sbs'];
+  const tld = parts[parts.length - 1];
+  if (suspTlds.includes(tld)) {
+    score += 12;
+    findings.push({ level: 'warning', label: `High-Risk TLD (.${tld})`, msg: `The .${tld} TLD is heavily abused in phishing campaigns and malware distribution.` });
+  }
+
+  // 11. Heavy encoding
+  if ((url.match(/%[0-9a-f]{2}/gi)||[]).length > 5) {
+    score += 10;
+    findings.push({ level: 'warning', label: 'URL Obfuscation', msg: 'Excessive percent-encoding detected — parameters may be obfuscated to evade security scanners.' });
+  }
+
+  // 12. Known safe domain
+  const safeDomains = ['google.com','youtube.com','github.com','microsoft.com','apple.com','amazon.com','facebook.com','twitter.com','instagram.com','linkedin.com','wikipedia.org','cloudflare.com','stackoverflow.com','reddit.com','netflix.com','spotify.com'];
+  if (safeDomains.some(d => hostname === d || hostname.endsWith('.'+d))) {
+    score = Math.max(0, score - 25);
+    findings.push({ level: 'safe', label: 'Known Safe Domain', msg: `${hostname} is a recognized legitimate service domain.` });
+  }
+
+  score = Math.min(100, Math.max(0, score));
+
+  if (!findings.find(f => f.level === 'danger' || f.level === 'warning')) {
+    findings.push({ level: 'safe', label: 'No Threats Found', msg: 'No threat indicators detected in the URL structure.' });
+  }
+
+  return { findings, score, type };
+}
+
+// ── RENDER RESULT ──
+function analyzeAndShow(content) {
+  const { findings, score, type } = analyzeQR(content);
+  lastResult = { content, findings, score, type };
+
+  const scanId = 'QRS-' + Date.now().toString(36).toUpperCase().slice(-6);
+  document.getElementById('scanIdEl').textContent = scanId;
+  document.getElementById('qrValueEl').textContent = content;
+
+  const typeLabels = { URL:'🔗 URL', EMAIL:'📧 Email', PHONE:'📞 Phone', WIFI:'📶 WiFi', CRYPTO:'₿ Crypto', SMS:'💬 SMS', LOCATION:'📍 Location', CONTACT:'👤 Contact', TEXT:'📝 Plain Text' };
+  document.getElementById('typePillEl').innerHTML =
+    `<span class="type-pill">${typeLabels[type] || type}</span>`;
+
+  // Findings
+  const list = document.getElementById('findingsList');
+  list.innerHTML = '';
+  findings.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'finding-row';
+    row.style.animationDelay = i * 55 + 'ms';
+    row.innerHTML = `
+      <div class="finding-dot ${f.level}"></div>
+      <div class="finding-content">
+        <div class="finding-tag ${f.level}">${f.label}</div>
+        <div class="finding-msg">${f.msg}</div>
+      </div>`;
+    list.appendChild(row);
+  });
+  document.getElementById('findingsCount').textContent = findings.length + ' check' + (findings.length !== 1 ? 's' : '');
+
+  // Score
+  const level = score <= 20 ? 'low' : score <= 50 ? 'medium' : score <= 75 ? 'high' : 'critical';
+  document.getElementById('scoreNumEl').textContent = score;
+  document.getElementById('scoreNumEl').className = 'score-num ' + level;
+  const fill = document.getElementById('scoreFillEl');
+  fill.className = 'score-bar-fill ' + level;
+  setTimeout(() => { fill.style.width = score + '%'; }, 80);
+
+  // Verdict
+  const verdicts = {
+    low:      { icon:'🛡️', level:'No Threat Detected',     title:'This QR code appears safe.',      desc:'No significant threat indicators were found. Standard caution still advised.',     cls:'safe' },
+    medium:   { icon:'⚠️', level:'Suspicious Activity',    title:'Proceed with caution.',            desc:'Several suspicious patterns detected. Verify the source before opening this link.', cls:'medium' },
+    high:     { icon:'🚨', level:'High Risk',              title:'This link is likely malicious.',   desc:'Multiple threat indicators found. We strongly advise against opening this URL.',     cls:'high' },
+    critical: { icon:'🛑', level:'Critical Threat',        title:'Do not open this link.',           desc:'This QR code exhibits strong indicators of phishing, malware, or identity theft.',   cls:'critical' }
+  };
+  const v = verdicts[level];
+  document.getElementById('verdictIconWrap').textContent = v.icon;
+  document.getElementById('verdictIconWrap').className = `verdict-icon-wrap vicon-${v.cls}`;
+  document.getElementById('verdictLevel').textContent = v.level;
+  document.getElementById('verdictLevel').className = `verdict-level vlevel-${v.cls}`;
+  document.getElementById('verdictTitle').textContent = v.title;
+  document.getElementById('verdictDesc').textContent  = v.desc;
+
+  document.getElementById('resultPanel').style.display = 'block';
+  setTimeout(() => document.getElementById('resultPanel').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+  // History
+  history.unshift({ id: scanId, content: content.length > 70 ? content.slice(0,70)+'…' : content, score, level, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}), full: content });
+  if (history.length > 15) history.pop();
+  localStorage.setItem('qrs_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function showResult_error(msg) {
+  document.getElementById('scanIdEl').textContent = 'ERROR';
+  document.getElementById('qrValueEl').textContent = msg;
+  document.getElementById('typePillEl').innerHTML = '';
+  document.getElementById('findingsList').innerHTML =
+    `<div class="finding-row"><div class="finding-dot danger"></div><div class="finding-content"><div class="finding-tag danger">Decode Failed</div><div class="finding-msg">${msg}</div></div></div>`;
+  document.getElementById('findingsCount').textContent = '1 check';
+  document.getElementById('scoreNumEl').textContent = '—';
+  document.getElementById('scoreFillEl').style.width = '0%';
+  document.getElementById('verdictIconWrap').textContent = '❓';
+  document.getElementById('verdictLevel').textContent = 'Decode Error';
+  document.getElementById('verdictLevel').className = 'verdict-level vlevel-high';
+  document.getElementById('verdictTitle').textContent = 'Could not decode QR code.';
+  document.getElementById('verdictDesc').textContent  = msg;
+  document.getElementById('resultPanel').style.display = 'block';
+  document.getElementById('resultPanel').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const list  = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+  if (!history.length) { empty.style.display='block'; list.innerHTML=''; return; }
+  empty.style.display = 'none';
+  list.innerHTML = history.map(h => `
+    <div class="history-row" onclick="replayEntry('${h.id}')">
+      <span class="risk-badge rb-${h.level}">${h.level}</span>
+      <span class="history-url">${h.content}</span>
+      <span class="history-score">${h.score}/100</span>
+      <span class="history-time">${h.time}</span>
+    </div>`).join('');
+}
+
+function replayEntry(id) {
+  const e = history.find(h => h.id === id);
+  if (e) analyzeAndShow(e.full);
+}
+
+function clearHistory() {
+  history = [];
+  localStorage.removeItem('qrs_history');
+  renderHistory();
+}
+
+// ── HELPERS ──
+function showOverlay(txt) {
+  document.getElementById('overlayText').textContent = txt;
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+function resetScan() {
+  document.getElementById('resultPanel').style.display = 'none';
+  clearUpload();
+  lastResult = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function copyReport() {
+  if (!lastResult) return;
+  const { content, findings, score, type } = lastResult;
+  const levelLabel = score<=20?'SAFE':score<=50?'SUSPICIOUS':score<=75?'HIGH RISK':'CRITICAL';
+  const text = [
+    'QRShield Threat Intelligence Report',
+    '====================================',
+    `Scan ID  : ${document.getElementById('scanIdEl').textContent}`,
+    `Date     : ${new Date().toLocaleString()}`,
+    `Type     : ${type}`,
+    `Content  : ${content}`,
+    '',
+    'Security Findings:',
+    ...findings.map(f => `  [${f.level.toUpperCase().padEnd(7)}] ${f.label}: ${f.msg}`),
+    '',
+    `Risk Score   : ${score}/100`,
+    `Final Verdict: ${levelLabel}`,
+    '',
+    '— QRShield · Local analysis, no data transmitted —',
+  ].join('\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
+  }).catch(() => alert(text));
+}
+
+// ── INIT ──
+renderHistory();
+</script>
+</body>
+</html>
